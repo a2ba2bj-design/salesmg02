@@ -12,7 +12,6 @@
     "@prisma/client": "^7.0.1",
     "moment-jalaali": "^0.10.4",
     "next": "16.0.6",
-    "prisma": "^7.0.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "save-dev": "^0.0.1-security"
@@ -25,6 +24,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.6",
+    "prisma": "^7.1.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

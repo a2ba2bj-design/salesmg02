@@ -3,11 +3,13 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import WEB from "../../../../public/firspage0.jpeg";
+import { createUser } from "@/app/actions/createUser";
 
 export default function Login() {
   const [mobileNumber, setMobileNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState('')
   const [time, setTime] = useState("1:14");
   const [date, setDate] = useState("۶ شهریور");
   const router = useRouter();
@@ -71,29 +73,31 @@ export default function Login() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+   
     setLoading(true);
     setError("");
-
-    try {
-      // شبیه‌سازی ارسال درخواست
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+  
       if (mobileNumber.length !== 11) {
         setError("شماره موبایل باید ۱۱ رقم باشد");
         return;
       }
-      
-      // در صورت موفقیت، هدایت به صفحه اصلی
-      router.push('/dashboard');
-      
+       const formData = new FormData()
+    formData.append('phone', mobileNumber)
+
+    setLoading(true)
+    setMessage('')
+    try {
+      const result1 = await createUser(formData)
+    
+      setMessage(result1.message)
+     
     } catch (error) {
-      setError("خطا در ارتباط با سرور");
-      console.error('Login error:', error);
+      setMessage('خطا در ارسال کد')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
+    
   };
 
   const formatMobileNumber = (value: string) => {
@@ -182,6 +186,7 @@ export default function Login() {
                 </div>
 
                 <button
+                onClick={handleSubmit}
                   type="submit"
                   disabled={loading}
                   className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-3 rounded-xl font-semibold text-base focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
