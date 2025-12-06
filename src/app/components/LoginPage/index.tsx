@@ -1,35 +1,74 @@
 'use client'
-import axios from "axios";
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import WEB from "../../../../public/firspage0.jpeg";
-import { authenticateUser } from "../../actions/auth";
 
 export default function Login() {
-  const [UserName1, setUserName1] = useState("");
-  const [Password1, setPassword1] = useState("");
-  const [NameFull1, setNameFull1] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [mobileNumber, setMobileNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [posts, setPosts] = useState([]);
+  const [time, setTime] = useState("1:14");
+  const [date, setDate] = useState("۶ شهریور");
   const router = useRouter();
 
-  // دریافت لیست پست‌ها از سرور
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const response = await fetch('/api/tblvPost');
-        const data = await response.json();
-        setPosts(data);
-      } catch (error) {
-        console.error('Error fetching posts:', error);
+  // تابع تبدیل تاریخ به شمسی (بدون کتابخانه خارجی)
+  const convertToPersianDate = (date: Date): string => {
+    // تبدیل ساده - برای دقت بیشتر از این تابع استفاده کنید
+    const gregorianToJalali = (gy: number, gm: number, gd: number) => {
+      const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+      const gy2 = (gm > 2) ? (gy + 1) : gy;
+      let days = 355666 + (365 * gy) + ~~((gy2 + 3) / 4) - ~~((gy2 + 99) / 100) + ~~((gy2 + 399) / 400) + gd + g_d_m[gm - 1];
+      let jy = -1595 + (33 * ~~(days / 12053));
+      days %= 12053;
+      jy += 4 * ~~(days / 1461);
+      days %= 1461;
+      if (days > 365) {
+        jy += ~~((days - 1) / 365);
+        days = (days - 1) % 365;
       }
+      const jm = (days < 186) ? 1 + ~~(days / 31) : 7 + ~~((days - 186) / 30);
+      const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+      return [jy, jm, jd];
+    };
+
+    const now = date;
+    const gy = now.getFullYear();
+    const gm = now.getMonth() + 1;
+    const gd = now.getDate();
+    
+    const [jy, jm, jd] = gregorianToJalali(gy, gm, gd);
+    
+    const persianMonths = [
+      "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+      "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
+    ];
+    
+    // تبدیل اعداد انگلیسی به فارسی
+    const toPersianDigits = (num: number): string => {
+      const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+      return num.toString().replace(/\d/g, (digit) => persianDigits[parseInt(digit)]);
     };
     
-    fetchPosts();
+    return `${toPersianDigits(jd)} ${persianMonths[jm - 1]}`;
+  };
+
+  // تبدیل تاریخ به شمسی
+  useEffect(() => {
+    const updateDateTime = () => {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      setTime(`${hours}:${minutes}`);
+      
+      // تبدیل تاریخ به شمسی
+      const persianDate = convertToPersianDate(now);
+      setDate(persianDate);
+    };
+    
+    updateDateTime();
+    const interval = setInterval(updateDateTime, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,18 +77,17 @@ export default function Login() {
     setError("");
 
     try {
-      const formData = new FormData();
-      formData.append('UserName', UserName1);
-      formData.append('Password', Password1);
-      formData.append('NameFull', NameFull1);
-
-      const result = await authenticateUser(formData);
+      // شبیه‌سازی ارسال درخواست
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      if (!result.success) {
-        setError(result.message);
+      if (mobileNumber.length !== 11) {
+        setError("شماره موبایل باید ۱۱ رقم باشد");
+        return;
       }
-      // اگر موفق باشد، redirect در سرور اکشن انجام می‌شود
-
+      
+      // در صورت موفقیت، هدایت به صفحه اصلی
+      router.push('/dashboard');
+      
     } catch (error) {
       setError("خطا در ارتباط با سرور");
       console.error('Login error:', error);
@@ -58,8 +96,25 @@ export default function Login() {
     }
   };
 
+  const formatMobileNumber = (value: string) => {
+    const cleaned = value.replace(/\D/g, '');
+    
+    if (cleaned.length > 0 && !cleaned.startsWith('0')) {
+      const formatted = cleaned.substring(0, 11);
+      return formatted.startsWith('0') ? formatted : `0${formatted}`;
+    }
+    
+    return cleaned;
+  };
+
+  // تابع تبدیل اعداد به فارسی برای placeholder
+  const toPersianDigits = (numStr: string): string => {
+    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    return numStr.replace(/\d/g, (digit) => persianDigits[parseInt(digit)]);
+  };
+
   return (
-    <main className="relative w-full flex-grow min-h-screen z-0 ">
+    <main className="relative w-full flex-grow min-h-screen z-0">
       <Image
         src={WEB}
         alt="Background image"
@@ -69,142 +124,113 @@ export default function Login() {
         priority
       />
       
-      <div className="absolute top-1/2 right-4 md:right-8 lg:right-16 xl:right-24 transform -translate-y-1/2 w-full max-w-xs md:max-w-sm">
-        <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-6 border border-gray-200">
-          
-          <div className="text-center mb-6">
-            <div className="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
-              <span className="text-white text-xl font-bold">🔒</span>
-            </div>
-            <h2 className="text-xl font-bold text-gray-800">ورود به سیستم</h2>
-            <p className="text-gray-600 mt-1 text-xs">لطفاً اطلاعات حساب خود را وارد کنید</p>
-          </div>
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm text-center">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="absolute top-1/2 right-4 md:right-8 lg:right-16 xl:right-24 transform -translate-y-1/2 z-10">
+        <div className="w-full max-w-xs md:max-w-sm">
+          <div className="text-right mb-4">
+            <h1 className="text-2xl md:text-3xl text-white drop-shadow-lg">
+               کاربر گرامی خوش آمدید
+            </h1>
             
-            {/* فیلد نام کاربری */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                نام کاربری
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={UserName1}
-                  onChange={(e) => setUserName1(e.target.value)}
-                  className="w-full px-4 py-3 bg-blue-50 border-2 border-blue-500 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-400 transition-all duration-200 text-right text-gray-800"
-                  placeholder="نام کاربری خود را وارد کنید"
-                  required
-                  disabled={loading}
-                />
-                <div className="absolute left-3 top-3 text-blue-500">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* فیلد رمز عبور */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                رمز عبور
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={Password1}
-                  onChange={(e) => setPassword1(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border-2 border-blue-500 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-400 transition-all duration-200 text-right text-gray-800 pr-12"
-                  placeholder="رمز عبور خود را وارد کنید"
-                  required
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-3 top-3 text-blue-500 hover:text-blue-700 transition-colors duration-200"
-                >
-                  {showPassword ? "🙈" : "👁️"}
-                </button>
-              </div>
-            </div>
-
-            {/* Dropdown انتخاب پست */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 text-right">
-                انتخاب پست
-              </label>
-              <div className="relative">
-                <select
-                  value={NameFull1}
-                  onChange={(e) => setNameFull1(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border-2 border-blue-500 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-400 transition-all duration-200 text-right text-gray-800 appearance-none cursor-pointer"
-                  required
-                  disabled={loading}
-                >
-                  <option value="">لطفاً پست خود را انتخاب کنید</option>
-                  {posts.map((postItem: any) => (
-                    <option key={postItem.PostID} value={postItem.PostID}>
-                      {postItem.Name}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute left-3 top-3 text-blue-500 pointer-events-none">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* گزینه‌های اضافی */}
-            <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
-              <label className="flex items-center space-x-2 space-x-reverse cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                  disabled={loading}
-                />
-                <span className="text-sm text-gray-600">مرا به خاطر بسپار</span>
-              </label>
-              
-              <a href="#" className="text-sm text-blue-600 hover:text-blue-800 transition-colors duration-200">
-                رمز عبور را فراموش کرده‌اید؟
-              </a>
-            </div>
-
-            {/* دکمه ورود */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
-            >
-              {loading ? (
-                <div className="flex items-center justify-center space-x-2 space-x-reverse">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>در حال ورود...</span>
-                </div>
-              ) : (
-                'ورود به سیستم'
-              )}
-            </button>
-          </form>
-
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <p className="text-center text-xs text-gray-500">
-              سیستم مدیریت فروشگاهی - نسخه ۱.۰
-            </p>
           </div>
-        </div>
+
+          <div className="bg-gradient-to-b from-white/20 to-white/10 backdrop-blur-md rounded-2xl shadow-2xl border border-white/25 overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-700/95 to-blue-700/95 p-5 relative">
+              <div className="relative flex justify-center">
+                <div className="w-20 h-20 rounded-full bg-white/20 border-3 border-white/40 flex items-center justify-center shadow-xl backdrop-blur-sm">
+                  <div className="text-white text-4xl">👤</div>
+                </div>
+              </div>
+              <p className="text-center text-white/95 mt-4 text-lg font-medium drop-shadow">
+                ورود با شماره موبایل
+              </p>
+            </div>
+
+            <div className="p-5 md:p-6">
+              {error && (
+                <div className="mb-4 p-3 bg-red-500/25 backdrop-blur-sm border border-red-500/40 text-red-100 rounded-lg text-xs text-center">
+                  <div className="flex items-center justify-center">
+                    <span className="ml-1">⚠️</span>
+                    {error}
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-2 text-right">
+                    شماره موبایل
+                  </label>
+                  <div className="relative">
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/70">
+                      📱
+                    </div>
+                    <input
+                      type="tel"
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(formatMobileNumber(e.target.value))}
+                      className="w-full py-3 pr-10 pl-3 bg-white/10 border border-white/30 rounded-xl focus:border-purple-400 focus:outline-none text-white transition-all duration-200 text-left text-sm backdrop-blur-sm"
+                      placeholder={toPersianDigits("09123456789")}
+                      required
+                      pattern="09[0-9]{9}"
+                      maxLength={11}
+                      disabled={loading}
+                    />
+                  </div>
+                  <p className="text-right text-xs text-white/60 mt-1">
+                    ۱۱ رقم وارد کنید
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-3 rounded-xl font-semibold text-base focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+                >
+                  {loading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin ml-2"></div>
+                      در حال ارسال...
+                    </div>
+                  ) : (
+                    "ارسال رمز یکبار مصرف"
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-6 pt-5 border-t border-white/20">
+                <div className="text-center">
+                  <p className="text-white/70 text-xs mb-2">
+                    اولین بار است؟
+                  </p>
+                  <a href="#" className="text-purple-300 hover:text-white text-xs font-medium inline-flex items-center transition-colors">
+                    <span className="ml-1">📝</span>
+                    ثبت نام جدید
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-black/25 py-3 px-4 text-center">
+              <div className="flex items-center justify-end mt-2 text-white/90 text-sm">
+              <div className="flex items-center">
+                <span className="ml-1">📅</span>
+                <span className="font-medium mr-1">{date}</span>
+                <div className="flex items-center ml-3">
+                <span className="ml-1">🕐</span>
+                <span className="font-medium mr-1">{time}</span>
+              </div>
+              </div>
+            </div>
+            </div>
+            <div className="bg-black/25 py-3 px-4 text-center">
+              
+                    <p className="text-white/60 text-xs font-light">© 1404 - نسخه 1.۰
+                    </p>
+              
+            </div>
+          </div>
+
+         </div>
       </div>
     </main>
   );
