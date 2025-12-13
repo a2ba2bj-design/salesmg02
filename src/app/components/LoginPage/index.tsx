@@ -83,10 +83,9 @@ export default function Login() {
         return;
       }
        const formData = new FormData()
-    formData.append('phone', mobileNumber)
-
-    setLoading(true)
-    setMessage('')
+        formData.append('Temp1', mobileNumber)
+       setLoading(true)
+       setMessage('')
     try {
       const result1 = await createUser(formData)
     

@@ -1,8 +1,14 @@
 'use server'
-import { PrismaClient } from '../../generated/prisma/client'
-const prisma = new PrismaClient()
+
+import { PrismaClient , Prisma} from '../../../src/generated/prisma/client'
+const prisma = new PrismaClient({} as Prisma.PrismaClientOptions)
+//import {   prisma } from '../../../src/generated/prisma/client'
+
+
+
 export async function createUser(formData: FormData) {
- const phone = formData.get('phone').toString() 
+  const username1 = formData.get('UserName')?.toString()
+ const Temp11 = formData.get('Temp1').toString() 
  const catid = parseInt(formData.get('catid').toString() )
  console.log(phone)
   const getRandomInteger = (min, max) => {
