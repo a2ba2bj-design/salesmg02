@@ -2,7 +2,7 @@
 
 import { PrismaClient , Prisma} from '../../../src/generated/prisma/client'
 const prisma = new PrismaClient({} as Prisma.PrismaClientOptions)
-//import {   prisma } from '../../../src/generated/prisma/client'
+
 
 
 
